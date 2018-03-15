@@ -1,7 +1,7 @@
 'use strict';
 
 const chai = require('chai');
-const chaiHttp = require('chaiHttp');
+const chaiHttp = require('chai-http');
 const faker = require('faker');
 const mongoose = require('mongoose');
 
@@ -27,12 +27,11 @@ function seedBlogPostData() {
 function generateBlogPostData() {
 	return {
 		author: {
-			firstName: faker.Name.firstName(),
-			lastName: faker.Name.lastName()
+			firstName: faker.name.firstName(),
+			lastName: faker.name.lastName()
 		}, 
-		title: faker.Lorem.sentence(),
-		content: faker.Lorem.paragraph(),
-		created: faker.Date.recent()
+		title: faker.lorem.sentence(),
+		content: faker.lorem.paragraph(),
 	};
 }
 
@@ -68,11 +67,11 @@ describe('BlogPost API resource', function() {
 				.then(function(_res) {
 					res = _res;
 					expect(res).to.have.status(200);
-					expect(res.body.posts).to.have.length.of.at.least(1);
+					expect(res.body).to.have.length.of.at.least(1);
 					return BlogPost.count();
 				})
 				then(function(count) {
-					expect(res.body.posts).to.have.length.of(count);
+					expect(res.body).to.have.length.of(count);
 				});
 		});
 
@@ -84,23 +83,21 @@ describe('BlogPost API resource', function() {
 				.then(function(res) {
 					expect(res).to.have.status(200);
 					expect(res).to.be.json;
-					expect(res.body.posts).to.be.a('array');
-					expect(res.body.posts).to.have.length.of.at.least(1);
+					expect(res.body).to.be.a('array');
+					expect(res.body).to.have.length.of.at.least(1);
 
-					res.body.posts.forEach(function(post) {
+					res.body.forEach(function(post) {
 						expect(post).to.be.a('object');
-						expect(post).to.include.keys('title', 'content', 'author', 'created');
+						expect(post).to.include.keys('title', 'content', 'author');
 					});
-					resBlogPost = res.body.posts[0];
+					resBlogPost = res.body[0];
 					return BlogPost.findById(resBlogPost.id);
 				})
 				.then(function(post) {
 
-					expect(resBlogPost.id).to.equal(post.id);
 					expect(resBlogPost.title).to.equal(post.title);
-					expect(resBlogPost.author).to.equal(post.author);
+					expect(resBlogPost.author).to.equal(post.authorName);
 					expect(resBlogPost.content).to.equal(post.content);
-					expect(resBlogPost.created).to.equal(post.created);
 				});
 		});
 	});
@@ -112,19 +109,17 @@ describe('BlogPost API resource', function() {
 			const newBlogPost = generateBlogPostData();
 
 			return chai.request(app)
-				.post('./posts')
+				.post('/posts')
 				.send(newBlogPost)
 				.then(function(res) {
 					expect(res).to.have.status(201);
 					expect(res).to.be.json;
 					expect(res.body).to.be.a('object');
-					expect(res.body).to.include.keys('title', 'content', 'author', 'created');
+					expect(res.body).to.include.keys('id', 'title', 'content', 'author');
 					expect(res.body.title).to.equal(newBlogPost.title);
 					expect(res.body.id).to.not.be.null;
 					expect(res.body.content).to.equal(newBlogPost.content);
-					expect(res.body.author.firstName).to.equal(newBlogPost.author.firstName);
-					expect(res.body.author.lastName).to.equal(newBlogPost.author.lastName);
-					expect(res.body.created).to.equal(newBlogPost.created);
+					expect(res.body.author).to.equal(`${newBlogPost.author.firstName} ${newBlogPost.author.lastName}`);
 					return BlogPost.findById(res.body.id);
 				})
 				.then(function(post) {
@@ -132,7 +127,6 @@ describe('BlogPost API resource', function() {
 					expect(post.content).to.equal(newBlogPost.content);
 					expect(post.author.firstName).to.equal(newBlogPost.author.firstName);
 					expect(post.author.lastName).to.equal(newBlogPost.author.lastName);
-					expect(post.created).to.equal(newBlogPost.created);
 				});
 		});
 	});
